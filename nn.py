@@ -2,6 +2,8 @@ import numpy as np
 
 class NeuralNetwork:
 
+    # test Diogo
+
     def __init__(self, input_size, hidden_architecture, hidden_activation, output_activation):
         self.input_size = input_size
         self.hidden_architecture = hidden_architecture
