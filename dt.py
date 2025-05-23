@@ -40,8 +40,11 @@ class DecisionTree:
         self.feature = best_feature
         for value in best_splits[0]:
             self.children[value] = DecisionTree(
-                best_splits[0][value], best_splits[1][value],
-                threshold=threshold, max_depth=max_depth, depth=depth + 1
+                best_splits[0][value],
+                best_splits[1][value],
+                threshold=threshold,
+                max_depth=max_depth,
+                depth=depth + 1
             )
 
     def _entropy(self, labels):
@@ -55,6 +58,14 @@ class DecisionTree:
         weighted_entropy = sum((len(child) / total) * self._entropy(child) for child in children)
         return parent_entropy - weighted_entropy
 
+    def _majority_class(self):
+        if self.prediction is not None:
+            return self.prediction
+        labels = []
+        for child in self.children.values():
+            labels.append(child._majority_class())
+        return Counter(labels).most_common(1)[0][0]
+
     def predict(self, x):  # Ex: x = ['apple', 'green', 'circle']
         if self.prediction is not None:
             return self.prediction
@@ -62,7 +73,8 @@ class DecisionTree:
         child = self.children.get(value)
         if child:
             return child.predict(x)
-        return 1  # fallback prediction
+        else:
+            return self._majority_class()
 
 def train_decision_tree(X, y):
     return DecisionTree(X, y)
