@@ -1,7 +1,6 @@
 import random
 import argparse
 import csv
-import numpy as np
 
 from pathlib import Path
 
@@ -44,13 +43,7 @@ def load_ai_player(filename):
     nn = create_network_architecture(STATE_SIZE)
     nn.load_weights(weights)
 
-    print("Output:", lambda state: nn.forward(state))
-    return lambda state: print_and_decide(state, nn)
-
-def print_and_decide(state, nn):
-    output = nn.forward(state)
-    print("Output da rede:", output)
-    return int(np.sign(output.item()))
+    return lambda state: nn.forward(state)
 
 
 def load_train_dataset(filename):
