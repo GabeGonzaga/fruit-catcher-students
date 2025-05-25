@@ -55,31 +55,25 @@ class NeuralNetwork:
         self.output_weights = output_w[1:, :]
 
     def forward(self, x):
-        """
-        Propagação direta do input `x` até à saída da rede.
-        """
         a = np.array(x)
         for W, b in zip(self.hidden_weights, self.hidden_biases):
             z = np.dot(a, W) + b
             a = self.hidden_activation(z)
 
         z_out = np.dot(a, self.output_weights) + self.output_bias
-        out = self.output_activation(z_out)
-        return out.item() if np.ndim(out) else out  # devolve escalar limpo
+        out = self.output_activation(z_out).item()  # escalar
+
+        return -1 if out < 0 else 1  # movimento à esquerda ou direita
 
 def create_network_architecture(input_size, output_size=1,
-                                with_hidden_layer=False, hidden_neurons=5):
+                                with_hidden_layer=True, hidden_neurons=5):
     """
-    Cria uma instância da rede com ou sem uma camada oculta.
-    Por omissão, cria um perceptron simples (sem camada escondida).
+    Cria uma instância da rede com uma camada escondida por omissão.
     """
     hidden_fn = lambda x: 1 / (1 + np.exp(-x))  # Sigmoid
-    output_fn = np.tanh  # Saída em [-1, 1]
+    output_fn = np.tanh  # [-1, 1]
 
-    if with_hidden_layer:
-        hidden_arch = (hidden_neurons,)
-    else:
-        hidden_arch = ()
+    hidden_arch = (hidden_neurons,) if with_hidden_layer else ()
 
     return NeuralNetwork(
         input_size=input_size,
