@@ -21,6 +21,7 @@ def fitness(nn, individual, seed):
 
 def train_ai_player(filename, population_size, generations):
     nn = create_network_architecture(STATE_SIZE)
+    print(nn.compute_num_weights())
     individual_size = nn.compute_num_weights()
 
     fitness_function = lambda individual, seed=None: fitness(nn, individual, seed)
@@ -42,6 +43,7 @@ def load_ai_player(filename):
         weights = list(map(float, f.read().split(',')))
 
     nn = create_network_architecture(STATE_SIZE)
+    print(nn.compute_num_weights())
     nn.load_weights(weights)
 
     print("Output:", lambda state: nn.forward(state))
