@@ -61,9 +61,22 @@ class NeuralNetwork:
             a = self.hidden_activation(z)
 
         z_out = np.dot(a, self.output_weights) + self.output_bias
-        out = self.output_activation(z_out).item()  # escalar
+        out = self.output_activation(z_out).item()
 
-        return -1 if out < 0 else 1  # movimento à esquerda ou direita
+        # Decide ação
+        decision = -1 if out < 0 else 1
+
+        # Mostra decisão e estado no terminal
+        print("Estado:")
+        print(f"  basket_y = {x[0]:.2f}")
+        for i in range(3):
+            base = 1 + i * 3
+            tipo = "Fruta" if x[base+2] == 1 else "Bomba"
+            print(f"  {tipo} {i+1}: x={x[base]:.2f}, y={x[base+1]:.2f}")
+        print(f"→ Decisão da IA: {'← Esquerda' if decision == -1 else '→ Direita'}")
+        print("-" * 40)
+
+        return decision
 
 def create_network_architecture(input_size, output_size=1,
                                 with_hidden_layer=True, hidden_neurons=5):
