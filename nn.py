@@ -1,5 +1,19 @@
 import numpy as np
 
+# Activation functions
+
+def relu(x):
+    """
+    Rectified Linear Unit activation: f(x) = max(0, x)
+    """
+    return np.maximum(0, x)
+
+def sign(x):
+    """
+    Sign activation: f(x) = -1 if x < 0, 0 if x == 0, 1 if x > 0
+    """
+    return np.sign(x)
+
 class NeuralNetwork:
     def __init__(self, input_size, hidden_architecture, output_size,
                  hidden_activation, output_activation):
@@ -56,34 +70,59 @@ class NeuralNetwork:
 
     def forward(self, x):
         a = np.array(x)
+        # Propagate through hidden layers
         for W, b in zip(self.hidden_weights, self.hidden_biases):
             z = np.dot(a, W) + b
             a = self.hidden_activation(z)
 
+        # Output layer
         z_out = np.dot(a, self.output_weights) + self.output_bias
         out = self.output_activation(z_out).item()
 
-        # Decide ação
-        decision = -1 if out < 0 else 1
+        # Decide ação: -1, 0 ou 1
+        if out < 0:
+            decision = -1
+        elif out > 0:
+            decision = 1
+        else:
+            decision = 0
 
         # Mostra decisão e estado no terminal
-        print("Estado:")
-        print(f"  basket_y = {x[0]:.2f}")
+        # print("Estado:")
+        # print(f"  basket_y = {x[0]:.2f}")
         for i in range(3):
             base = 1 + i * 3
             tipo = "Fruta" if x[base+2] == 1 else "Bomba"
-            print(f"  {tipo} {i+1}: x={x[base]:.2f}, y={x[base+1]:.2f}")
-        print(f"→ Decisão da IA: {'← Esquerda' if decision == -1 else '→ Direita'}")
-        print("-" * 40)
+            # print(f"  {tipo} {i+1}: x={x[base]:.2f}, y={x[base+1]:.2f}")
+        # action_map = { -1: '← Esquerda', 0: 'Parar', 1: '→ Direita' }
+        # print(f"→ Decisão da IA: {action_map[decision]}")
+        # print("-" * 40)
 
         return decision
 
-def create_network_architecture(input_size, output_size=1,
-                                with_hidden_layer=True, hidden_neurons=5):
+
+def create_network_architecture(
+    input_size,
+    output_size=1,
+    with_hidden_layer=True,
+    hidden_neurons=5,
+    hidden_activation_type='relu'
+):
     """
-    Cria uma instância da rede com uma camada escondida por omissão.
+    Cria uma instância da rede.
+    hidden_activation_type: 'relu', 'sigmoid' ou 'sign'
     """
-    hidden_fn = lambda x: 1 / (1 + np.exp(-x))  # Sigmoid
+    # Escolha da função de ativação oculta
+    if hidden_activation_type.lower() == 'relu':
+        hidden_fn = relu
+    elif hidden_activation_type.lower() == 'sigmoid':
+        hidden_fn = lambda x: 1 / (1 + np.exp(-x))
+    elif hidden_activation_type.lower() == 'sign':
+        hidden_fn = sign
+    else:
+        raise ValueError(f"Tipo de ativação desconhecido: {hidden_activation_type}")
+
+    # Função de ativação da saída
     output_fn = np.tanh  # [-1, 1]
 
     hidden_arch = (hidden_neurons,) if with_hidden_layer else ()

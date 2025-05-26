@@ -2,22 +2,67 @@ import random
 import inspect
 import os
 
+# == Fitness functions ==
+
+def fitness_with_edge_penalty(net, weights, sim, alpha=5.0):
+    """
+    Fitness que penaliza o tempo que a cesta passa nos cantos.
+    net: instância de NeuralNetwork
+    weights: lista de pesos a atribuir à rede
+    sim: objeto de simulação com métodos:
+         - reset(): reinicia o ambiente
+         - step(decision): aplica decisão e retorna (caught, basket_x)
+         - total_steps: número total de passos da simulação
+    alpha: penalidade por tempo nos cantos
+    """
+    net.load_weights(weights)
+    sim.reset()
+    total_caught = 0
+    edge_count = 0
+    for _ in range(sim.total_steps):
+        state = sim.state
+        decision = net.forward(state)
+        caught, basket_x = sim.step(decision)
+        total_caught += caught
+        if basket_x < 0.33 or basket_x > 0.67:
+            edge_count += 1
+    penalty = alpha * (edge_count / sim.total_steps)
+    return total_caught - penalty
+
+
+def fitness_with_l2(net, weights, sim, lambda_l2=0.001):
+    """
+    Fitness que inclui regularização L2 nos pesos.
+    lambda_l2: coeficiente de regularização
+    """
+    net.load_weights(weights)
+    sim.reset()
+    total_caught = 0
+    for _ in range(sim.total_steps):
+        state = sim.state
+        decision = net.forward(state)
+        caught, _ = sim.step(decision)
+        total_caught += caught
+    l2 = sum(w*w for w in weights)
+    return total_caught - lambda_l2 * l2
+
+
+# == Genetic algorithm core ==
+
 def create_individual(individual_size):
     """
     Create an individual as a list of uniform random weights in [-1, 1].
     """
     return [random.uniform(-1, 1) for _ in range(individual_size)]
 
+
 def save_best_individual(individual, fitness, generation, file_path="best_individual.txt"):
     """
     Save the best individual's fitness, generation, and weights to disk.
     """
     with open(file_path, "w") as f:
-        f.write(
-            ",".join(
-                [str(fitness), str(generation)] + [str(w) for w in individual]
-            )
-        )
+        f.write(",".join([str(fitness), str(generation)] + [str(w) for w in individual]))
+
 
 def load_best_individual(file_path, individual_size):
     """
@@ -32,6 +77,7 @@ def load_best_individual(file_path, individual_size):
     if len(weights) < individual_size:
         weights += [0.0] * (individual_size - len(weights))
     return weights[:individual_size], fitness, generation
+
 
 def genetic_algorithm(
     individual_size,
@@ -55,7 +101,8 @@ def genetic_algorithm(
     - Adaptive mutation rates based on stagnation.
     """
     # Determine if fitness_function accepts a seed parameter
-    accepts_seed = len(inspect.signature(fitness_function).parameters) == 2
+    sig = inspect.signature(fitness_function)
+    accepts_seed = 'seed' in sig.parameters or len(sig.parameters) == 2
 
     # Try loading previous best
     if os.path.exists(file_path):
@@ -68,7 +115,7 @@ def genetic_algorithm(
 
     start_gen = last_gen + 1
 
-    # Initialize population, injecting previous best as first individual
+    # Initialize population, injecting previous best if exists
     if best_ind is not None:
         population = [best_ind[:]] + [create_individual(individual_size) for _ in range(population_size - 1)]
     else:
@@ -79,13 +126,13 @@ def genetic_algorithm(
     for gen in range(start_gen, start_gen + generations):
         scored = []
 
-        # Evaluate fitness once per individual (optional seed for reproducibility)
+        # Evaluate fitness once per individual
         for idx, ind in enumerate(population):
             if accepts_seed:
-                fitness = fitness_function(ind, seed=idx)
+                fitness_value = fitness_function(ind, seed=idx)
             else:
-                fitness = fitness_function(ind)
-            scored.append((ind, fitness))
+                fitness_value = fitness_function(ind)
+            scored.append((ind, fitness_value))
 
         # Sort by fitness descending
         scored.sort(key=lambda x: x[1], reverse=True)
@@ -121,7 +168,7 @@ def genetic_algorithm(
         new_pop = [best_ind[:]]
 
         for _ in range(population_size - 1):
-            if random.random() < 0.1:
+            if random.random() < 0.25:
                 # Random injection to maintain diversity
                 new_pop.append(create_individual(individual_size))
             else:
