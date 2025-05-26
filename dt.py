@@ -1,8 +1,11 @@
+# dt.py
+
 import numpy as np
 from collections import Counter
 
 class DecisionTree:
-    def __init__(self, X, y, threshold=1.0, max_depth=None, depth=0):
+    def __init__(self, X, y, threshold=0.0, max_depth=None, depth=0):
+        # threshold reduzido para 0.0 para permitir divisões até esgotar a informação
         self.feature = None
         self.children = {}
         self.prediction = None
@@ -33,7 +36,7 @@ class DecisionTree:
                 best_feature = i
                 best_splits = (splits, y_splits)
 
-        if best_gain < threshold or best_feature is None:
+        if best_gain <= threshold or best_feature is None:
             self.prediction = Counter(y).most_common(1)[0][0]
             return
 
@@ -66,7 +69,7 @@ class DecisionTree:
             labels.append(child._majority_class())
         return Counter(labels).most_common(1)[0][0]
 
-    def predict(self, x):  # Ex: x = ['apple', 'green', 'circle']
+    def predict(self, x):
         if self.prediction is not None:
             return self.prediction
         value = x[self.feature]
@@ -76,5 +79,5 @@ class DecisionTree:
         else:
             return self._majority_class()
 
-def train_decision_tree(X, y):
-    return DecisionTree(X, y)
+def train_decision_tree(X, y, threshold=0.0, max_depth=None):
+    return DecisionTree(X, y, threshold=threshold, max_depth=max_depth)
