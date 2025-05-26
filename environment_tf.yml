@@ -1,0 +1,11 @@
+name: tf
+channels:
+  - apple
+  - conda-forge
+dependencies:
+  - python=3.10
+  - tensorflow-deps
+  - pip
+  - pip:
+    - tensorflow-macos
+    - tensorflow-metal
