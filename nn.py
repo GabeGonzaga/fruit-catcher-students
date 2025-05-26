@@ -15,7 +15,7 @@ def sign(x):
     return np.sign(x)
 
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_architecture, output_size,
+    def __init__(self, input_size,hidden_architecture, output_size,
                  hidden_activation, output_activation):
         self.input_size = input_size
         self.hidden_architecture = hidden_architecture
@@ -129,7 +129,7 @@ def create_network_architecture(
 
     return NeuralNetwork(
         input_size=input_size,
-        hidden_architecture=hidden_arch,
+        hidden_architecture=(16, 8) + hidden_arch,
         output_size=output_size,
         hidden_activation=hidden_fn,
         output_activation=output_fn
