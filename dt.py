@@ -7,74 +7,65 @@ class DecisionTree:
         self.children = {}
         self.prediction = None
 
-        if len(set(y)) == 1:
-            self.prediction = y[0]
-            return
-
-        if max_depth is not None and depth >= max_depth:
-            self.prediction = Counter(y).most_common(1)[0][0]
-            return
-
-        best_gain = 0
-        best_feature = None
-        best_splits = None
-
-        for i in range(len(X[0])):
-            values = set(row[i] for row in X)
-            splits = {v: [] for v in values}
-            y_splits = {v: [] for v in values}
-            for row, label in zip(X, y):
-                splits[row[i]].append(row)
-                y_splits[row[i]].append(label)
-
-            gain = self._information_gain(y, y_splits.values())
-            if gain > best_gain:
-                best_gain = gain
-                best_feature = i
-                best_splits = (splits, y_splits)
-
-        if best_gain < threshold or best_feature is None:
-            self.prediction = Counter(y).most_common(1)[0][0]
-            return
-
-        self.feature = best_feature
-        for value in best_splits[0]:
-            self.children[value] = DecisionTree(
-                best_splits[0][value],
-                best_splits[1][value],
-                threshold=threshold,
-                max_depth=max_depth,
-                depth=depth + 1
+        # terminal conditions
+        if len({*y}) == 1 or (max_depth is not None and depth >= max_depth):
+            self.prediction = (y[0]
+                if len({*y}) == 1
+                else Counter(y).most_common(1)[0][0]
             )
+            return
+
+        # compute splits & gains for each feature
+        def get_splits(i):
+            vals = {row[i] for row in X}
+            splits = {v: [row for row in X if row[i] == v] for v in vals}
+            y_splits = {v: [lab for row, lab in zip(X, y) if row[i] == v] for v in vals}
+            return splits, y_splits
+
+        feats = (
+            (i, splits, y_splits, self._information_gain(y, y_splits.values()))
+            for i in range(len(X[0]))
+            for splits, y_splits in [get_splits(i)]
+        )
+        best_i, best_splits, best_y_splits, best_gain = max(feats, key=lambda t: t[3], default=(None, None, None, 0))
+
+        if best_gain < threshold or best_i is None:
+            self.prediction = Counter(y).most_common(1)[0][0]
+            return
+
+        self.feature = best_i
+        self.children = {
+            v: DecisionTree(best_splits[v], best_y_splits[v], threshold, max_depth, depth + 1)
+            for v in best_splits
+        }
 
     def _entropy(self, labels):
         total = len(labels)
         counts = Counter(labels)
-        return -sum((count / total) * np.log2(count / total) for count in counts.values() if count > 0)
+        return -sum((cnt/total) * np.log2(cnt/total)
+                    for cnt in counts.values() if cnt)
 
     def _information_gain(self, parent, children):
         total = len(parent)
-        parent_entropy = self._entropy(parent)
-        weighted_entropy = sum((len(child) / total) * self._entropy(child) for child in children)
-        return parent_entropy - weighted_entropy
+        p_ent = self._entropy(parent)
+        c_ent = sum((len(c)/total) * self._entropy(c) for c in children)
+        return p_ent - c_ent
 
     def _majority_class(self):
         if self.prediction is not None:
             return self.prediction
-        labels = []
-        for child in self.children.values():
-            labels.append(child._majority_class())
-        return Counter(labels).most_common(1)[0][0]
+        return Counter(
+            c._majority_class() for c in self.children.values()
+        ).most_common(1)[0][0]
 
-    def predict(self, x):  # Ex: x = ['apple', 'green', 'circle']
-        if self.prediction is not None:
-            return self.prediction
-        value = x[self.feature]
-        child = self.children.get(value)
-        if child:
-            return child.predict(x)
-        else:
-            return self._majority_class()
+    def predict(self, x):
+        return (
+            self.prediction
+            if self.prediction is not None else
+            self.children[x[self.feature]].predict(x)
+                if x[self.feature] in self.children else
+            self._majority_class()
+        )
 
 def train_decision_tree(X, y):
     return DecisionTree(X, y)
